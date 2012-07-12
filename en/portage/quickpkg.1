@@ -1,8 +1,8 @@
-.TH "QUICKPKG" "1" "Jul 2003" "Portage 2.0.51" "Portage"
+.TH "QUICKPKG" "1" "Mar 2010" "Portage 2.1.10.65" "Portage"
 .SH NAME
 quickpkg \- creates portage packages
 .SH SYNOPSIS
-.B quickpkg <list of pkgs>
+.B quickpkg <list of packages or package\-sets>
 .SH DESCRIPTION
 .I quickpkg
 can be utilized to quickly create a package for portage by
@@ -17,16 +17,17 @@ modified since they were first installed.
 .br
 The packages, after being created, will be placed in \fBPKGDIR\fR.  
 This variable is defined in \fBmake.conf\fR(5) and defaults to 
-/var/tmp/portage-pkg.
+/usr/portage/packages.
 .SH OPTIONS
 .TP
-.B <list of packages>
+.B <list of packages or package\-sets>
 Each package in the list can be of two forms.  First you can
 give it the full path to the installed entry in the virtual
-database.  That is, /var/db/pkg/<CATEGORY>/<PKG-VERSION>/.  
-The second form is a portage depend atom.  This atom is of
-the same form that you would give \fBemerge\fR if you wanted 
-to emerge something.  See \fBebuild\fR(5) for full definition.
+database.  That is, /var/db/pkg/<CATEGORY>/<PKG-VERSION>/.
+The second form is a portage depend atom or a portage package
+set.  The atom or set is of the same form that you would give
+\fBemerge\fR if you wanted to emerge something.
+See \fBebuild\fR(5) for full definition.
 .SH "EXAMPLES"
 .B quickpkg
 /var/db/pkg/dev-python/pyogg-1.1
@@ -39,18 +40,20 @@ planeshift
 .br
 .B quickpkg
 =net-www/apache-2*
+.br
+.B quickpkg
+@system
 .SH "REPORTING BUGS"
 Please report bugs via http://bugs.gentoo.org/
-.SH "SEE ALSO"
-.BR ebuild (5),
-.BR make.conf (5)
+.SH AUTHORS
+.nf
+Terry Chan (original author)
+Mike Frysinger <vapier@gentoo.org> (revamped version)
+.fi
 .SH "FILES"
 .TP
 .B /etc/make.conf
 The \fBPKGDIR\fR variable is defined here.
-.SH AUTHORS
-Terry Chan (original author)
-.br
-Mike Frysinger <vapier@gentoo.org> (revamped version)
-.SH "CVS HEADER"
-$Header: /var/cvsroot/gentoo-src/portage/man/quickpkg.1,v 1.3 2004/09/17 00:17:10 vapier Exp $
+.SH "SEE ALSO"
+.BR ebuild (5),
+.BR make.conf (5)

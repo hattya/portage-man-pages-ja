@@ -1,0 +1,52 @@
+.TH "EMAINT" "1" "Nov 2008" "Portage 2.1.10.65" "Portage"
+.SH NAME
+emaint \- performs system health checks and maintenance
+.SH SYNOPSIS
+.BR emaint
+[\fIoptions\fR]
+[\fBall\fR | \fBbinhost\fR | \fBcleanresume\fR | \
+\fBmovebin\fR | \fBmoveinst\fR | \fBworld\fR]
+.SH DESCRIPTION
+The emaint program provides an interface to system health
+checks and maintenance.
+.SH COMMANDS
+.TP
+.BR all
+Perform all supported commands.
+.TP
+.BR binhost
+Generate a metadata index for binary packages located in \fBPKGDIR\fR (for
+download by remote clients). See the \fBPORTAGE_BINHOST\fR documentation in
+the \fBmake.conf\fR(5) man page for additional information.
+.TP
+.BR cleanresume
+Discard merge lists saved for the \fBemerge\fR(1) \fB--resume\fR action.
+.TP
+.BR movebin
+Perform package move updates for binary packages located in \fBPKGDIR\fR.
+.TP
+.BR moveinst
+Perform package move updates for installed packages.
+.TP
+.BR world
+Fix problems in the \fIworld\fR file.
+.SH OPTIONS 
+.TP
+.B \-c, \-\-check
+Check for any problems that may exist.
+.TP
+.B \-f, \-\-fix
+Fix any problems that may exist.
+.SH "REPORTING BUGS"
+Please report bugs via http://bugs.gentoo.org/
+.SH AUTHORS
+.nf
+Mike Frysinger <vapier@gentoo.org>
+.fi
+.SH "FILES"
+.TP
+.B /var/lib/portage/world
+Contains a list of all user\-specified packages.
+.SH "SEE ALSO"
+.BR emerge (1),
+.BR portage (5)
