@@ -1,0 +1,246 @@
+Release 20060415, (28 April 2006)
+
+  28 Apr 2006; Akinori Hattori <hattya@gentoo.org>
+  * gentoolkit-dev/eviewcvs.1
+    added.
+
+  01 Apr 2006; Akinori Hattori <hattya@gentoo.org>
+  * gentoolkit/equery.1
+    updated.
+  * gentoolkit/euse.1
+    added.
+
+  01 Apr 2006; Akinori Hattori <hattya@gentoo.org>
+  * gentoolkit/etcat.1
+  * gentoolkit/qpkg.1
+    removed.
+
+  01 Apr 2006; Akinori Hattori <hattya@gentoo.org>
+  * gentoolkit/revdep-rebuild.1
+    updated.
+
+  01 Apr 2006; Akinori Hattori <hattya@gentoo.org>
+  * gentoolkit/eclean.1
+  * gentoolkit/glsa-check.1
+    added.
+
+  04 Oct 2005; Akinori Hattori <hattya@gentoo.org>
+  * gentoolkit-dev/ebump.1
+  * gentoolkit-dev/echangelog.1
+  * gentoolkit-dev/ekeyword.1
+    Update to gentoolkit-dev-0.2.5.
+
+Release 20050415, (23 April 2005)
+
+  29 Mar 2005; Akinori Hattori <hattya@gentoo.org>
+  * gentoolkit/dep-clean.1
+  * gentoolkit/euse.1
+  * gentoolkit/ewhich.1
+  * gentoolkit/mkebuild.1
+  * gentoolkit/pkg-clean.1
+  * gentoolkit/pkg-size.1
+    removed.
+
+  27 Mar 2005; Mamoru KOMACHI <usata@gentoo.org>
+  * gentoolkit/equery.1
+    Updated. Thanks to hattya, [gentoojp-docs:01131]
+  * gentoolkit-dev/ebump.1
+  * gentoolkit-dev/gensync.1
+    Added. Thanks to hattya, [gentoojp-docs:00981]
+
+Release 20041115, (23 November 2004)
+
+  23 Nov 2004; Akinori Hattori <hattya@gentoo.org>
+  * gentoolkit/equery.1
+    added.
+
+  18 Nov 2004; Akinori Hattori <hattya@gentoo.org>
+  * gentoolkit/dep-clean.1
+  * gentoolkit/etcat.1
+  * gentoolkit/euse.1
+  * gentoolkit/ewhich.1
+  * gentoolkit/mkebuild.1
+  * gentoolkit/pkg-clean.1
+  * gentoolkit/pkg-size.1
+  * gentoolkit/qpkg.1
+  * gentoolkit/revdep-rebuild.1
+    Update to gentoolkit-0.2.0_pre8.
+  * gentoolkit-dev/echangelog.1
+  * gentoolkit-dev/ekeyword.1
+    Update to gentoolkit-dev-0.2.0_pre4.
+
+  18 Nov 2004; Akinori Hattori <hattya@gentoo.org>
+  * portage/toolchain-funcs.eclass.5
+    Change copyright holder to original translater.
+
+  16 Nov 2004; Akinori Hattori <hattya@gentoo.org>
+  Change copyright holders to original translaters.
+
+  16 Nov 2004; Mamoru KOMACHI <usata@gentoo.org>
+  Updated to portage-2.0.51-r3.
+  gcc.eclass.5 was renamed to toolchain-funcs.eclass.5.
+
+  * ebuild.5 (1.71 -> 1.73)
+  * emerge.1 (1.61 -> 1.71)
+  * gcc.eclass.5 (1.3 -> deleted)
+  * make.conf.5 (1.43 -> 1.45)
+  * portage.5 (1.15 -> 1.18)
+  * toolchain-funcs.eclass.5 (1.1)
+
+  21 Oct 2004; Mamoru KOMACHI <usata@gentoo.org>
+  Six manpages were introduced from Portage 2.0.51. Shigehiro
+  IDANI <datam@anet.ne.jp> translated and contributed the
+  manpages to GentooJP manpage translation project. Thanks!
+
+  * portage/check-kernel.eclass.5: added
+  * portage/ebook.eclass.5: added
+  * portage/fixheadtails.eclass.5: added
+  * portage/font.elcass.5: added
+  * portage/horde.eclass.5: added 
+  * portage/libtool.eclass.5: added
+
+  13 Oct 2004; Akinori Hattori <hattya@gentoo.org>
+  Split to the directories of package names which are contained.
+
+  29 Sep 2004; Mamoru KOMACHI <usata@gentoo.org>
+  Updated manpages to 2.0.51_rc6.
+
+  * Added .ECLASS to each eclasses' name
+  * Simplified CVS HEADER
+  * Updated manpages header
+  * s/Gentoo Technologies, Inc/Gentoo Foundation/g
+  * Updated ebuild.1, ebuild.5, emerge.1, make.conf.5, portage.5 and repoman.1
+
+Release 20040915, (22 September 2004)
+
+  11 Sep 2004; Akinori Hattori <hattya@gentoo.org>
+  Import to Subversion repository.
+
+Release 20040615, (19 June 2004)
+
+  19 Jun 2004; Mamoru KOMACHI <usata@gentoo.org>
+  * portage/eutils.eclass.5
+    Update to 1.2.
+
+  18 Jun 2004; Mamoru KOMACHI <usata@gentoo.org>
+  * portage/dispatch-conf.1
+    added.
+  * portage/ebuild.5
+    Update to 1.61.
+  * portage/emerge.1
+    Update to 1.51.
+  * portage/env-update.1
+    Update to 1.4.
+  * portage/flag-o-matic.eclass.5
+    Update to 2.0.48.
+  * portage/make.conf.5
+    Update to 1.35.
+  * portage/portage.5
+    Update to 1.6.
+  * portage/repoman.1
+    Update to 1.3.
+
+  16 Jun 2004; Mamoru KOMACHI <usata@gentoo.org>
+  * portage/g-cpan.pl.1
+    added.
+
+Release 20040415, (19 April 2004)
+
+  19 Apr 2004; Mamoru KOMACHI <usata@gentoo.org>
+  * portage/ebuild.5
+    Update to 1.57.
+  * portage/emerge.1
+    Update to 1.48.
+  * portage/etc-update.1
+    Update to 1.7.
+  * portage/games.eclass.5
+    Update to 1.5.
+  * portage/ssl-cert.eclass.5
+    added.
+
+Release 20040315, (01 April 2004)
+
+  25 Feb 2004; Mamoru KOMACHI <usata@gentoo.org>
+  * gentoolkit-dev/ekeyword.1
+    added. Translated by Akinori Hattori <hattya@gentoo.org>.
+
+  21 Feb 2004; Mamoru KOMACHI <usata@gentoo.org>
+  * gentoolkit/pkg-clean.1
+  * gentoolkit/pkg-size.1
+  * gentoolkit-dev/echangelog.1
+    added. Translated by Akinori Hattori <hattya@gentoo.org>.
+
+Release 20040215, (18 February 2004)
+
+  16 Feb 2004; Mamoru KOMACHI <usata@gentoo.org>
+  * portage/portage.5
+    added. Translated by TAKEDA hiroyuki <diapar@mizar.freemail.ne.jp>.
+
+Release 20040115, (17 January 2004)
+
+  12 Jan 2004; Mamoru KOMACHI <usata@gentoo.org>
+  * epm/epm.1
+  * esearch/esearch.1
+    added.
+
+Release 20031215, (24 December 2003)
+
+  20 Nov 2003; Mamoru KOMACHI <usata@gentoo.org>
+  * gentoolkit/mkebuild.1
+  * gentoolkit/revdep-rebuild.1
+    added. Translated by Akinori Hattori <hattya@gentoo.org>.
+
+Release 20031115, (17 November 2003)
+
+  15 Nov 2003; Mamoru KOMACHI <usata@gentoo.org>
+  * portage/emerge.1
+    Update to 1.43.
+  * portage/flag-o-matic.eclass.5
+    Update to 2.0.48.
+  * portage/make.conf.5
+    Update to 1.32.
+  * portage/quickpkg.1
+    added.
+
+  05 Nov 2003; Mamoru KOMACHI <usata@gentoo.org>
+  * gentoolkit/ewhich.1
+    added. Translated by Akinori Hattori <hattya@gentoo.org>.
+
+  17 Oct 2003; Mamoru KOMACHI <usata@gentoo.org>
+  * gentoolkit/dep-clean.1
+  * gentoolkit/euse.1
+    added. Translated by Akinori Hattori <hattya@gentoo.org>.
+
+  16 Oct 2003; Mamoru KOMACHI <usata@gentoo.org>
+  * gentoolkit/etcat.1
+  * gentoolkit/qpkg.1
+    added. Translated by Akinori Hattori <hattya@gentoo.org>.
+
+  19 Aug 2003; Mamoru KOMACHI <usata@gentoo.org>
+  * portage/cvs.eclass.5
+  * portage/distutils.eclass.5
+  * portage/eutils.eclass.5
+  * portage/games.eclass.5
+  * portage/gcc.eclass.5
+  * portage/perl-module.eclass.5
+  * portage/vim.eclass.5
+    added.
+
+  16 Aug 2003; Mamoru KOMACHI <usata@gentoo.org>
+  * portage/flag-o-matic.eclass.5
+  * portage/stardict.eclass.5
+    added.
+
+  15 Aug 2003; Mamoru KOMACHI <usata@gentoo.org>
+  * portage/emerge.1
+  * portage/rpm.eclass.5
+    added.
+
+  08 Jul 2003; Mamoru KOMACHI <usata@gentoo.org>
+  * portage/ebuild.1
+  * portage/ebuild.5
+  * portage/env-update.1
+  * portage/etc-update.1
+  * portage/make.conf.5
+  * portage/repoman.1
+    added.
