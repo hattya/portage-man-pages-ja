@@ -1,4 +1,4 @@
-.TH esearch 1 "Januar 11, 2004" "esearch"
+.TH esearch 1 "February 13, 2005" "esearch"
 
 .SH "NAME"
 esearch \- replacement for 'emerge search' with search-index
@@ -23,17 +23,29 @@ Search package descriptions as well
 .B \-\-fullname, \-F
 Search packages full name (includes category)
 .TP
+.B \-\-instonly, \-I
+Find only packages which are installed
+.TP
+.B \-\-notinst, \-N
+Find only packages which are NOT installed
+.TP
 .B \-\-compact, \-c
 More compact output format
+.TP
+.B \-\-verbose, \-v
+Give a lot of additional information (slow!)
 .TP
 .B \-\-ebuild, \-e
 View ebuilds of found packages
 .TP
-.B \-\-output=format, \-o format
+.B \-\-own=format, \-o format
 Use user-defined output format,
 .B format
-is a string with may contain special characters,
+is a string which may contain special characters,
 see FORMAT section for details
+.TP
+.B \-\-directory=dir, \-d dir
+Use dir to store esearch index
 .TP
 .B \-\-nocolor, \-n
 Don't use ANSI codes for colored output
@@ -66,6 +78,9 @@ Homepage
 .TP
 .B %d
 Description
+.TP
+.B %l
+License
 
 .SH "EXAMPLES"
 .TP
@@ -79,7 +94,7 @@ Print the names of the current ebuild files.
 Generate a list of all available packages.
 
 .SH "SEE ALSO"
-emerge(1)
+eupdatedb(1), esync(1), emerge(1)
 
 .SH "BUGS"
 No known bugs
