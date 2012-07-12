@@ -14,13 +14,13 @@ etc.
 .SH "OPTIONS "
 .TP 
 \fB\-E, \-\-enable\fI
-Enables USE flag(s) in make.conf. It accepts one or more space seperated 
+Enables USE flag(s) in make.conf. It accepts one or more space separated 
 USE flags as parameters.
 .TP 
 \fB\-D, \-\-disable\fI
 Disables USE flag(s) in make.conf. Puts a '\-' sign in front of the USE flag
 and appends it to the USE setting in make.conf. It accepts one or more 
-space seperated USE flags as parameters.
+space separated USE flags as parameters.
 .TP 
 \fB\-P, \-\-prune\fI
 Removes USE flag(s) in make.conf. Removes all positive and negative references to
@@ -30,17 +30,21 @@ the given USE flags from make.conf.
 Prints detail information about the USE flag(s). If no arguments are given then
 it assumes you want information for all USE flags. If one or more
 arguments are given (space separated) then only information for those flags is
-printed. 
+printed.
+.TP 
+\fB\-I, \-\-info\-installed\fI
+Same as \-\-info, except that it will also list the currently installed packages that are utilizing the flag.
 .sp
 .RS
 The output is in the following format:
 .br 
 \fB[\- cD ]\fI alpha \- indicates that architecture ...
 .br 
-\fB[\-   ]\fI moznocompose (net\-www/mozilla):.br 
+\fB[\-   ]\fI moznocompose (net\-www/mozilla):
+.br 
 Disable building of mozilla's web page composer 
 .br 
-The the indicators in the first column are:
+The indicators in the first column are:
 .IP is_active
 + if the flag is seen as active by portage, \- if not
 .IP is_in_env
@@ -89,6 +93,7 @@ $PORTDIR/profiles/use.local.desc
 Original version by Arun Bhanu <codebear@gentoo.org>
 .br 
 Updated for rewritten euse by Marius Mauch <genone@gentoo.org>
+Sigificant rewrite for package.use support by Jared Hancock
 .SH "BUGS"
 euse doesn't handle USE flags enabled or disabled by use.defaults, use.mask
 or package.use yet. It also doesn't completely understand the \-* flag.
