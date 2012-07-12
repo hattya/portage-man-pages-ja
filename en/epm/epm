@@ -1,15 +1,16 @@
 #!/usr/bin/perl -wI.
-# $Id: epm,v 1.6 2005/05/13 20:47:17 agriffis Exp $
+# $Id: epm,v 1.33 2006/09/13 15:09:19 agriffis Exp $
 
 use Getopt::Long;
 use Cwd qw(abs_path);
-#use epm;
 
 # Global vars
+(my $version = '$Revision: 1.33 $') =~ s/.*?(\d.*\d).*/EPM version $1/;
 my $verbose = 0;
 my $dbpath = '/var/db/pkg';
-my $pkgregex = 
-    '^(.+?)'.					# name
+my $pkgregex =
+    '^.+?\/'.					# group (ignored)
+    '(.+?)'.					# name
     '-(\d+(?:\.\d+)*\w*)'.			# version, eg 1.23.4a
     '((?:(?:_alpha|_beta|_pre|_rc)\d*)?)'.	# special suffix
     '((?:-r\d+)?)$';				# revision, eg r12
@@ -24,13 +25,15 @@ my $exitcode = 0;
 ##############################################
 #
 # UTILITY FUNCTIONS
-# 
+#
 ##############################################
-sub verb {
+sub verb
+{
     print STDERR map "-- $_\n", @_ if $verbose;
 }
 
-sub vverb {
+sub vverb
+{
     print STDERR map "--   $_\n", @_ if $verbose > 1;
 }
 
@@ -40,15 +43,15 @@ sub vverb {
 #
 # @dgrps contains a list of all the groups at dbpath
 # @dpkgs contains a list of all the packages at dbpath/@dgrps
-# %dpkggrp contains a mapping of pkg=>grp
 # %dnampkg contains a mapping of nam=>@pkg (libxml=>[libxml-1.8.13])
 # %dfilepkg is a mapping of filename=>@pkg
-# 
+#
 ##############################################
 
-my (@dgrps, @dpkgs, %dpkggrp, %dnampkg);
+my (@dgrps, @dpkgs, %dnampkg);
 
-sub load_database {
+sub load_database()
+{
     # Check if the database is already loaded
     return if @dgrps;
 
@@ -64,18 +67,16 @@ sub load_database {
         opendir D, "$dbpath/$g" or
             die "epm: Error reading directory $dbpath/$g\n";
         my @dp = grep { !/^\./ &&
-                        -d "$dbpath/$g/$_" && 
+                        -d "$dbpath/$g/$_" &&
                         !-f "$dbpath/$g/$_/VIRTUAL" } readdir D;
+        @dp = map $g."/".$_, @dp;
         verb "read ".@dp." pkgs in group $g"; vverb @dp;
-        @dpkggrp{@dp} = ($g) x @dp;
         push @dpkgs, @dp;
     }
-    vverb "package to group associations:";
-    vverb map "  $_ => $dpkggrp{$_}", keys %dpkggrp;
 
     # Create association of names => pkgs
     for my $p (@dpkgs) {
-        $p =~ /$pkgregex/o || $dpkggrp{$p} eq 'virtual' ||
+        $p =~ /$pkgregex/o || $p =~ /^virtual/ ||
             die "epm: Could't parse name/version/suffix/rev from $p";
         # $2, $3, $4 aren't used right now, but they're in the regex
         # for the sake of completeness.
@@ -83,7 +84,8 @@ sub load_database {
     }
 }
 
-sub cmppkg {
+sub cmppkg($$)
+{
     my ($p1, $p2) = (shift, shift);
     # Remove the group from the beginning
     $p1 =~ s#.*/##;
@@ -91,14 +93,14 @@ sub cmppkg {
     # Apply the regex
     # [0] = name, [1] = version, [2] = special suffix, [3] = revision
     my (@p1) = ($p1 =~ /$pkgregex/o);
-    die "epm: Couldn't parse name/version/suffix/rev from $p" unless @p1;
+    die "epm: Couldn't parse name/version/suffix/rev from $p1" unless @p1;
     my (@p2) = ($p2 =~ /$pkgregex/o);
-    die "epm: Couldn't parse name/version/suffix/rev from $p" unless @p2;
+    die "epm: Couldn't parse name/version/suffix/rev from $p2" unless @p2;
 
-    # 
+    #
     # Compare VERSION (element 1)
     #
-   
+
     # Split on .
     my (@v1) = split /\./, $p1[1];
     my (@v2) = split /\./, $p2[1];
@@ -111,7 +113,7 @@ sub cmppkg {
             if ($v2[$i] =~ /^\d+$/) {
                 if ($v1[$i] != $v2[$i]) {
                     # 2 <=> 3
-                    return $v1[$i] <=> $v2[$i];  
+                    return $v1[$i] <=> $v2[$i];
                 } else {
                     # 2 == 2
                     next;  # 2 == 2
@@ -133,7 +135,7 @@ sub cmppkg {
         # These elements are equal, just continue
     }
 
-    # 
+    #
     # Compare SPECIAL SUFFIX (element 2)
     #
     #
@@ -155,15 +157,41 @@ sub cmppkg {
 ##############################################
 #
 # QUERY MODE
-# 
+#
 ##############################################
 
-# Utility function to do -qi
-sub query_info 
+# Utility function to sum the size of a package on the filesystem
+# in bytes
+sub pkg_bytes($)
 {
     my ($p) = @_;
-    my (%vals);
-    my ($fmt) = <<EOT;
+    my $total = 0;
+    my $CONTENTS;
+
+    $CONTENTS = "$dbpath/$p/CONTENTS";
+
+    open F, "<$CONTENTS" or die "epm: Can't open $CONTENTS\n"
+	or die "epm: Can't open $CONTENTS: $!\n";
+    for my $f (grep /^obj/, <F>) {
+	$f =~ s/^obj (.+) \w+ \d+\s*$/$1/;
+	my ($size) = (stat($f))[7];
+	next unless $size;
+	verb "Adding $f ($size bytes)";
+	$total += $size;
+    }
+    close F;
+    return $total;
+}
+
+# Utility function to do -qi
+sub query_info($)
+{
+    my ($p) = @_;
+    my ($group, $ename) = $p =~ /^(.+?)\/(.+)$/;
+    my ($key, $value);
+    my %vals;
+    my $ldbpath = "$dbpath/$p";
+    my $fmt = <<EOT;
 Name        : \%s
 Version     : \%s
 Release     : \%-28s        Slot: \%s
@@ -172,107 +200,99 @@ Group       : \%-28s     License: \%s
 Size        : \%s
 Packager    : \%s
 URL         : \%s
-Description : 
-\%s
+Summary     : \%s
 EOT
-
     # Extract some information from files stored in the Portage pkgdb
-    for my $f (qw(CATEGORY CFLAGS CHOST CXXFLAGS LICENSE SLOT)) {
-	if (open(F, "$dbpath/$dpkggrp{$p}/$p/$f")) {
-	    $vals{$f} = <F>;
-	    chomp($vals{$f});
-	} else {
-	    $vals{$f} = '';
+    open(F, "bzcat $ldbpath/environment.bz2|")
+	or die "epm: Can't open $ldbpath/environment.bz2: $!\n";
+    while (<F>) {
+	next unless (/^(CATEGORY|HOSTNAME|DESCRIPTION|HOMEPAGE|LICENSE|PN|PR|PV|SLOT)=(.*)/);
+	($key, $value) = ($1, $2);
+	if ($key eq 'PN') {
+	    $key = 'NAME';
+	} elsif ($key eq 'PR') {
+	    $key = 'RELEASE';
+	    $value =~ s/^r0?//o;
+	} elsif ($key eq 'PV') {
+	    $key = 'VERSION';
+	} elsif ($key eq 'HOMEPAGE') {
+	    $key = 'URL';
+	    $value = '(none)' unless $value;
 	}
-    }
-    
-    # When was this last built/installed?
-    $vals{'DATE'} = localtime((stat "$dbpath/$dpkggrp{$p}/$p/USE")[9]);
+	# Clean up the double and single quotes
+	$value =~ s/^'(.*)'$/$1/o;
+	$value =~ s/'\\''/'/go;
+	$value =~ s/\\"/"/go;
 
-    # Extract NAME, VERSION, RELEASE from $p
-    if ($p =~ /$pkgregex/o) {
-	$vals{'NAME'} = $1;
-	$vals{'VERSION'} = "$2$3";
-	($vals{'RELEASE'} = $4) =~ s/^-r//;
-    } else {
-	$vals{'NAME'} = $vals{'VERSION'} = $vals{'RELEASE'} = '';
+	$vals{$key} = $value;
     }
+    close(F);
+
+    # When was this last built/installed?
+    $vals{'DATE'} = localtime((stat "$ldbpath/USE")[9]);
+
+    # Calculate the SIZE for the files it uses on the filesystem
+    $vals{'SIZE'} = $opt{'nosize'} ? '' : pkg_bytes($p);
 
     # Extract the packager and description from the ebuild itself
-    {
-	local $/ = undef; 
-	open(F, "$dbpath/$dpkggrp{$p}/$p/$p.ebuild");
-	$_ = <F>;
-	$vals{'PACKAGER'} = /Header:.*:\d\d (\w+)/ ? $1 : ''; 
-	$vals{'DESCRIPTION'} = /DESCRIPTION=["'](.*)['"]/ ? $1 : '';
-	$vals{'URL'} = /HOMEPAGE=["'](.*)['"]/ ? $1 : '(none)';
+    open(F, "$ldbpath/$ename.ebuild")
+	or die "epm: Can't open $ldbpath/$p.ebuild: $!\n";
+    while (<F>) {
+	if (/Header:.*:\d\d (\w+)/o) {
+	    $vals{'PACKAGER'} = $1;
+	    last;
+	}
     }
+    close(F);
 
     printf $fmt, $vals{'NAME'}, $vals{'VERSION'}, $vals{'RELEASE'},
-	$vals{'SLOT'}, $vals{'DATE'}, $vals{'CHOST'}, $dpkggrp{$p},
-	$vals{'LICENSE'}, 'TBD', $vals{'PACKAGER'}, $vals{'URL'},
+	$vals{'SLOT'}, $vals{'DATE'}, $vals{'HOSTNAME'}, $group,
+	$vals{'LICENSE'}, $vals{'SIZE'}, $vals{'PACKAGER'}, $vals{'URL'},
 	$vals{'DESCRIPTION'};
 }
 
 # Utility function to do -ql
-sub query_list 
+sub query_list($)
 {
     my ($p) = @_;
-    my ($CONTENTS) = "$dbpath/$dpkggrp{$p}/$p/CONTENTS";
+    my ($CONTENTS) = "$dbpath/$p/CONTENTS";
     my (@files);
 
     open F, "<$CONTENTS" || die "epm: Can't open $CONTENTS\n";
     @files = <F>;
     close F;
 
-    # Trim @files if config files requested
+    # Look up CONFIG_PROTECT if -c
     if ($opt{'c'}) {
 	# Read in CONFIG_PROTECT from /etc/make.{global,conf}
-	my @CONFIG_PROTECT = split ' ', 
-	`. /etc/make.globals; 
-	. /etc/make.conf; 
-	echo \$CONFIG_PROTECT`;
+	my (@CONFIG_PROTECT) = split ' ',
+	    `. /etc/make.globals; . /etc/make.conf; echo \$CONFIG_PROTECT`;
 	die "CONFIG_PROTECT is empty" unless @CONFIG_PROTECT;
-	my $confprotre = join '|', @CONFIG_PROTECT;
-	@files = grep { 
-	    (split ' ', $_)[1] =~ /^($confprotre)/o 
-	} @files;
+	my ($confprotre) = join '|', @CONFIG_PROTECT;
+	@files = grep {
+	    (split ' ', $_, 2)[1] =~ /^($confprotre)/o } @files;
     }
 
     # Trim @files if doc files requested
     if ($opt{'d'}) {
 	# We don't have a variable like CONFIG_PROTECT to work
 	# with, so just fake it...  :-)
-	my $docre = '/usr/share/doc|/usr/share/man|/usr/X11R6/man';
-	@files = grep { 
-	    (split ' ', $_)[1] =~ m/^($docre)/o 
-	} @files;
+	@files = grep {
+	    (split ' ', $_, 2)[1] =~ m/\/(?:doc|man|info)\//o } @files;
     }
 
     # If this is a dump query, then print the entire array
     if ($opt{'dump'}) {
 	print @files;
-    } 
-
-    # Otherwise do some work so that intermediate directories
-    # aren't listed
-    else {
-	for (my $i=0; $i < @files; $i++) {
-	    my ($f1) = $files[$i];
-	    $f1 = (split ' ', $f1)[1];
-	    if ($i < @files-1) {
-		my $f2 = $files[$i+1];
-		$f2 = (split ' ', $f2)[1];
-		vverb "Comparing $f1 to $f2";
-		next if $f2 =~ m#^\Q$f1\E/#;
-	    }
-	    print $f1, "\n";
-	}
+    } else {
+        print grep {
+	    s{^obj (.+?)(?:/\.keep[^\s/]*)? \w+ \d+\s*?}{$1} ||
+	    s{^sym (\S.*?) -> .*$}{$1} } @files;
     }
 }
 
 # Utility function to do -qf
-sub query_file 
+sub query_file(@)
 {
     my (@pkgs) = @_;
     # Search through CONTENTS for elements in ARGV.  Building an
@@ -280,10 +300,12 @@ sub query_file
     for my $a (@ARGV) {
 	my $found = 0;
 	my $origa = $a;
+
 	# Trim trailing slashes from directories
 	$a =~ s#/*$##;
+
 	# If it's a relative pathname, then figure out the full pathname
-	if ($a !~ m#^/# || $a =~ m#/\.\./#) { 
+	if ($a !~ m#^/# || $a =~ m#/\.\./#) {
 	    # Make the pathname absolute
 	    if ($a =~ s#/([^/]+)$##) {
 		my $name = $1;
@@ -296,22 +318,23 @@ sub query_file
 	# TODO: stat the file here so that we can determine later
 	#       what package the file currently belongs to
 	for my $p (@dpkgs) {
-	    my ($CONTENTS, @files);
-	    $CONTENTS = "$dbpath/$dpkggrp{$p}/$p/CONTENTS";
+	    my $CONTENTS = "$dbpath/$p/CONTENTS";
+
 	    unless (-s $CONTENTS) {
 		verb "skipping empty/nonexistent $CONTENTS";
 		next;
 	    }
 	    open F, "<$CONTENTS" or die "epm: Can't open $CONTENTS\n";
-	    @files = <F>;
-	    close F;
 	    # Check this list of files for the current query
-	    for my $f (@files) {
-		$f = (split ' ', $f)[1];
+	    while (my $f = <F>) {
+		chomp($f);
+		$f =~ s{^obj (.+?)(?:/\.keep[^\s/]*)? \w+ \d+\s*?}{$1} or
+		$f =~ s{^sym (\S.*?) -> .*$}{$1} or next;
 		next unless $f eq $a;
 		$found = 1;
 		push @pkgs, $p;
 	    }
+	    close F;
 	}
 	unless ($found) {
 	    if (-e $a) { print "file $origa is not owned by any package\n"; }
@@ -323,55 +346,88 @@ sub query_file
 }
 
 # Utility function to do -V
-sub verify 
+sub verify($)
 {
     my ($p) = @_;
-    my ($CONTENTS) = "$dbpath/$dpkggrp{$p}/$p/CONTENTS";
+    my ($CONTENTS) = "$dbpath/$p/CONTENTS";
     verb "verifying $p";
 
     # CONTENTS consists of lines such as
     # dir /usr/bin
     # obj /usr/bin/qpkg e4a2da62aabb399c537ea9fa92b5af29 1034786384
     open F, "<$CONTENTS" || die "epm: Can't open $CONTENTS\n";
-    @files = <F>;
-    close F;
 
     # Verify directories and files
     # XXX should label config files with 'c'
-    for my $f (@files) {
-	if ($f =~ /^dir (\S+)/) {
-	    print "missing    $1\n" unless -d $1;
-	    next;
-	}
-	if ($f =~ /^obj (\S.*) (\S+) (\d+)\s*$/) {
+    while ($f = <F>) {
+	chomp($f);
+	if ($f =~ /^obj (.+) (\w+) (\d+)\s*$/o) {
 	    my ($Cname, $Cmd5, $Cmtime) = ($1, $2, $3);
 	    my ($md5, $mtime);
 	    vverb "$Cname: $Cmd5 $Cmtime";
 	    if (! -f $Cname) {
-		print "missing    $Cname\n";
+		print "missing    $Cname\n" unless ($opt{'nofiles'});
 		next;
 	    }
-	    if (-r _) {
-		($md5 = `md5sum $Cname`) =~ s/\s.*//s;
+	    unless ($opt{'nomd5'}) {
+		if (-r _) {
+		    ($md5 = `md5sum "$Cname"`) =~ s/\s.*//s;
+		} else {
+		    $md5 = 'UNKNOWN';
+		}
+		# only report this if it's calculated.
+		vverb "Md5 is $md5 for $Cname";
 	    }
-	    else {
-		$md5 = 'UNKNOWN';
-	    }
-	    vverb "Md5 is $md5 for $Cname";
 	    $mtime = (stat _)[9];
 	    vverb "Mtime is $mtime for $Cname";
-	    # size, device, user, group, and mode are not checked...  :-(
-	    next if ($md5 eq $Cmd5 && $mtime eq $Cmtime);
+	    # XXX size, device, user, group, and mode are not checked...  :-(
+	    next if (($opt{'nomd5'} or $md5 eq $Cmd5) and $mtime eq $Cmtime);
 	    printf "..%s....%s   %s\n",
-		($md5 ne $Cmd5) ? ($md5 eq 'UNKNOWN') ? '?' : 5 : '.',
-		($mtime ne $Cmtime) ? T : '.', $Cname;
+		($md5 ne $Cmd5) ? ($md5 eq 'UNKNOWN') ? '?' : '5' : '.',
+		($mtime ne $Cmtime) ? 'T' : '.', $Cname;
 	    if ($md5 ne $Cmd5) { $exitcode = 1; }
+	    next;
 	}
-	# XXX presently ignoring symlinks and devices
+	if ($f =~ /^dir (.+)/o) {
+	    print "missing    $1\n" unless (-d $1 or $opt{'nofiles'});
+	    next;
+	}
+	if ($f =~/^sym (.+) -> (.+) (\d+)$/o) {
+	    my ($Cname, $Clink, $Cmtime) = ($1, $2, $3);
+	    my ($link, $mtime);
+	    my ($modeok);
+
+	    if (! -e $Cname) {
+		print "missing    $Cname\n" unless ($opt{'nofiles'});
+		next;
+	    }
+	    vverb "$Cname -> $Clink $Cmtime";
+	    $mtime = (stat $Cname)[9];
+	    if (-l $Cname) {
+		$modeok = 1;
+		$link = readlink($Cname);
+	    } else {
+		$modeok = 0;
+		$link = '';
+	    }
+	    next if ($modeok
+		    and defined ($link)
+		    and $Clink eq $link
+		    and defined ($mtime)
+		    and $Cmtime eq $mtime);
+	    printf ".%s..%s..%s   %s\n",
+		$modeok ? '.' : 'M',
+		defined($link) ? ($Clink ne $link) ? 'L' : '.' : '?',
+		defined($mtime) ? ($Cmtime ne $mtime) ? 'T' : '.' : '?',
+		$Cname;
+	    next;
+	}
+	# XXX presently ignoring devices
     }
+    close F;
 }
 
-sub query 
+sub query()
 {
     verb "query mode";
     verb "actually Verify mode" if $opt{'V'};
@@ -381,7 +437,7 @@ sub query
     my (@pkgs);  # list of packages being queried
 
     # Package-based query (how does this work with emerge?)
-    if ($opt{'p'}) { 
+    if ($opt{'p'}) {
         die "epm: Sorry, package-based query not yet supported\n";
     }
 
@@ -391,7 +447,7 @@ sub query
     $opt{'c'}    and $opt{'l'} = 1;
 
     # File-based query
-    if ($opt{'f'}) { 
+    if ($opt{'f'}) {
 	@pkgs = query_file(@pkgs);
 	@ARGV = (); # Clear out ARGV so queries below don't get confused
     }
@@ -402,7 +458,7 @@ sub query
     elsif ($opt{'g'}) {
 	for my $a (@ARGV) {
             verb "checking for packages in group $a";
-            my @l = grep $dpkggrp{$_} eq $a, @dpkgs;
+            my @l = grep /^$a\//, @dpkgs;
             vverb "packages in group $a:";
             vverb "  ", join "\n  ", @l;
             unless (@l) {
@@ -418,7 +474,7 @@ sub query
     if ($opt{'a'}) {
 	die "epm: extra arguments given for query of all packages\n" if @ARGV;
 	@pkgs = @dpkgs;
-    } 
+    }
     elsif (@pkgs) {
 	# must have been populated by, for instance, -qf
     }
@@ -448,6 +504,23 @@ sub query
 	}
     }
 
+    # Sort package order, by reverse mtime
+    if ($opt{'last'}) {
+	my %mtimes;
+	@pkgs = sort {
+	    # When was this last built/installed?
+	    unless (exists $mtimes{$a}) {
+		$mtimes{$a} = (stat "$dbpath/$a")[9];
+		vverb "$a = $mtimes{$a}";
+	    }
+	    unless (exists $mtimes{$b}) {
+		$mtimes{$b} = (stat "$dbpath/$b")[9];
+		vverb "$b = $mtimes{$b}";
+	    }
+	    $mtimes{$b} <=> $mtimes{$a} or $a cmp $b;
+	} @pkgs;
+    }
+
     for my $p (@pkgs) {
 	# Verify package
 	if ($opt{'V'}) { verify($p); next; }
@@ -461,19 +534,25 @@ sub query
 
 	# If not another type of listing, then simply list the packages
 	if (!$opt{'l'} && !$opt{'i'}) {
+	    # If doing -qS, then include the size in kb, like ls -s
+	    printf "%6d ", int(pkg_bytes($p)/1000) if $opt{'S'};
 	    # If doing -qG, then include the group name
-	    print $opt{'G'} ? "$dpkggrp{$p}/$p\n" : "$p\n";
+	    if ($opt{'G'}) {
+	        print "$p\n";
+	    } else {
+	        ($nogrp) = $p =~ /^.+?\/(.+)$/;
+	        print "$nogrp\n";
+	    }
 	}
     }
-
 }
 
 ##############################################
 #
 # ERASE MODE
-# 
+#
 ##############################################
-sub erase 
+sub erase()
 {
     my (@cmd);
     verb "erase mode";
@@ -492,8 +571,9 @@ sub erase
     # There's no point implementing erase here.  Might as well just
     # use existing portage features.  This means that we do
     # --allmatches by default.
-    @cmd = qw(emerge -C);
+    @cmd = qw(emerge --unmerge);
     push @cmd, '--pretend' if $opt{'test'};
+    push @cmd, '--quiet' unless $opt{'verbose'};
     push @cmd, @ARGV;
     system(@cmd);
     die "epm: Fatal error running emerge\n" if $?;
@@ -507,7 +587,7 @@ sub erase
 
 # Syntax string for errors
 my $syntax = <<EOT;
-EPM version 0.8.4
+$version
 Copyright (C) 2001-2003 - Aron Griffis
 This program may be freely redistributed under the terms of the GNU GPL v2
 '*' leading an option indicates not-yet-implemented
@@ -523,6 +603,8 @@ Usage:
    -q, --query             - query mode
       --dbpath <dir>       - use <dir> as the directory for the database
       --root <dir>         - use <dir> as the top level directory
+      --last               - list package(s) by install time, most
+                             recent first
       Package specification options:
         -a, --all          - query all packages
         -f <file>+         - query package owning <file>
@@ -532,9 +614,11 @@ Usage:
        *--whatrequires <cap> - query packages which require <cap> capability
         -g <group>+ --group <group>+ - query packages in group <group>
       Information selection options:
-       *-i, --info         - display package information
+        -i, --info         - display package information
+           --nosize        - don't display size in info output (not in rpm)
         -l                 - display package file list
         -G, --showgroup    - display group name in output (not in rpm)
+        -S, --size         - display package size in output (not in rpm)
         -d                 - list only documentation files (implies -l)
         -c                 - list only configuration files (implies -l)
         --dump             - show all verifiable information for each file
@@ -543,8 +627,8 @@ Usage:
        *-R, --requires     - list package dependencies
        *--scripts          - print the various [un]install scripts
 
-    --erase <package>
-    -e <package>           - erase (uninstall) package
+   --erase <package>
+   -e <package>            - erase (uninstall) package
       --allmatches         - remove all packages which match <package>
                              (unlike rpm, this is the default)
       --dbpath <dir>       - use <dir> as the directory for the database
@@ -559,7 +643,7 @@ Usage:
       --root <dir>         - use <dir> as the top level directory
       --test               - don't uninstall, but tell what would happen
 
-    -V, -y, --verify       - verify a package installation using the same
+   -V, -y, --verify        - verify a package installation using the same
                              package specification options as -q
       --dbpath <dir>       - use <dir> as the directory for the database
      *--root <dir>         - use <dir> as the top level directory
@@ -575,13 +659,15 @@ Getopt::Long::Configure ("bundling");
 # each optionstring so that the hash keys are created using the short
 # versions.  For example, use 'q|query', not 'query|q'.
 my $result = GetOptions(
-    \%opt, 
+    \%opt,
     'help',		# help message
+    'version',		# version message
     'v+',		# verbose, more v's for more verbosity
 
     'q|query', 		# query mode
 	'dbpath=s',	# use <dir> as the directory for the database
 	'root=s',	# use <dir> as the top level directory
+	'last',		# order package listing by most recent install first
 	# Package specification options:
 	'a|all',	# query all packages
 	'f',		# query package owning file(s)
@@ -591,6 +677,7 @@ my $result = GetOptions(
 	'whatrequires',	# query packages which require capability
 	# Information selection options:
 	'i|info',	# display package information
+	'nosize',	# don't display size in info output
 	'l',		# display package file list
 	'd',		# list documentation files (implies -l)
 	'c',		# list configuration files (implies -l)
@@ -599,6 +686,7 @@ my $result = GetOptions(
 	'R|requires',	# list package dependencies
 	'scripts',	# print the various [un]install scripts
         'G|showgroup',  # include group name in output
+	'S|size',	# display package size
 
     'e|erase', 		# erase mode
         'allmatches',   # remove all packages which match <package>
@@ -613,6 +701,7 @@ my $result = GetOptions(
 
 # Handle help message
 if ($opt{'help'}) { print $syntax; exit 0 }
+if ($opt{'version'}) { print "$version\n"; exit 0 }
 
 # Determine which mode we're running in; make sure it's valid.
 #  (q)uery
@@ -623,10 +712,10 @@ if ($opt{'help'}) { print $syntax; exit 0 }
 #  other
 if ((defined $opt{'q'} || 0) +
     (defined $opt{'V'} || 0) +
-    (defined $opt{'U'} || 0) + 
-    (defined $opt{'e'} || 0) + 
+    (defined $opt{'U'} || 0) +
+    (defined $opt{'e'} || 0) +
     (defined $opt{'b'} || 0) != 1) {
-	die "One mode required, and only one mode allowed\n";
+	die "$syntax\nOne mode required, and only one mode allowed\n";
 }
 
 # Query mode
@@ -637,8 +726,122 @@ if ($opt{'e'}) { erase(); exit $exitcode }
 die "epm: Sorry, this mode isn't implemented yet.  Check back later!  :-)\n";
 
 # $Log: epm,v $
-# Revision 1.6  2005/05/13 20:47:17  agriffis
-# epm-0.8.4
+# Revision 1.33  2006/09/13 15:09:19  agriffis
+# Treat dirs the same in -qf as in -ql
+#
+# Revision 1.32  2006/09/13 15:04:49  agriffis
+# Revert 1.30.  Listing all intermediate dirs up to a file isn't useful, and doesn't match rpm.  Only list dirs that contain .keep files
+#
+# Revision 1.31  2006/09/08 19:35:22  agriffis
+# Switch to cvs-based versioning.  Add --version option.  Add --last option, based on patch submitted by Tim Stotts #138679
+#
+# Revision 1.30  2006/04/04 21:07:07  mr_bones_
+# display directories as well as files and symlinks when doing query list (-ql)
+# This matches what rpm does.  Reported by Steven Elling via Gentoo bugzilla:
+# http://bugs.gentoo.org/show_bug.cgi?id=128186
+#
+# Revision 1.29  2006/03/15 21:49:48  agriffis
+# Leave Size blank instead of n/a when --nosize given
+#
+# Revision 1.28  2006/03/15 21:43:23  agriffis
+# Add --nosize option
+#
+# Revision 1.27  2005/08/29 13:32:35  kanaka
+# Update version to 0.9.0
+#
+# Revision 1.26  2005/08/25 22:03:59  mr_bones_
+# -i is implemented so remove the * from the usage message. (reported by agriffis)
+#
+# Revision 1.25  2005/08/16 20:39:16  kanaka
+# Fix broken regex during file list query
+#
+# Revision 1.24  2005/08/15 20:37:14  kanaka
+# Fix situation where package group is different, but name and version are the same (i.e. crossdev)
+#
+# Revision 1.23  2005/07/05 20:01:36  mr_bones_
+# pass --quiet to emerge when performing -e (erase) to be more like rpm
+#
+# Revision 1.22  2005/06/22 05:28:24  mr_bones_
+# Print out usage if user didn't get the mode specified correctly.
+# Suggested by Tristan Cebulla in
+# http://bugs.gentoo.org/show_bug.cgi?id=96726
+#
+# Revision 1.21  2005/05/18 05:30:14  mr_bones_
+# fix silly check for empty HOMEPAGE
+#
+# Revision 1.20  2005/05/16 03:15:26  mr_bones_
+# Make all the regexs that match the obj lines from CONTENTS be the same.
+#
+# Revision 1.19  2005/05/14 23:50:33  mr_bones_
+# remove "use epm".  guessing that was an idea that never materialized
+#
+# Revision 1.18  2005/05/14 23:48:48  mr_bones_
+# Added support for --nofiles in verify() - rpm man page claims it only
+# suppresses reports of missing files.  epm suppresses all "missing" reporting
+# if --nofiles is given.
+#
+# Added support for --nomd5 in verify(); fixed up bare word in output.
+#
+# Added initial support for symlinks in verify().
+#
+# Revision 1.17  2005/05/14 22:24:12  mr_bones_
+# no reason to read CONTENTS into memory in query_file().  Modified to read
+# line at a time.
+#
+# Revision 1.16  2005/05/14 22:21:46  mr_bones_
+# Make output more similar to rpm by changing "Description" to "Summary"
+# in output.  Maybe at some point the extended description from metadata.xml
+# will be stored in portage and can be extracted then by epm for Description.
+# Also changed "Build Host" from CHOST to HOSTNAME.
+#
+# Modified to read environment.bz2 instead of the ebuild for some values.
+# This is more reliable because environment.bz2 is the state after ebuild
+# and eclass processing.  Epm was confused by ebuilds that have the HOMEPAGE
+# and DESCRIPTION in an eclass. (eg. xmms-mpg123)
+#
+# Fixed up display of values that contain double and single quotes
+# (eg. libmad)
+#
+# Added error checking for open()
+#
+# Revision 1.15  2005/05/14 21:55:25  mr_bones_
+# Pass long option (--unmerge) to emerge instead of short option (-C)
+# for better readability.
+#
+# Revision 1.14  2005/05/14 21:47:51  mr_bones_
+# fix bug in pkg_bytes() where files with whitespace in their name would
+# cause incorrect behavior.
+#
+# Revision 1.13  2005/05/14 21:38:10  mr_bones_
+# prototype functions
+#
+# Revision 1.12  2005/05/14 21:30:44  mr_bones_
+# Use correct variable in error message ($p -> $p1/$p2)
+#
+# Revision 1.11  2005/05/14 20:54:19  mr_bones_
+# Trim trailing whitespace
+#
+# Revision 1.10  2005/05/13 20:47:44  agriffis
+# epm-0.8.8
+#
+# Revision 1.20  2004/04/28 13:22:41  agriffis
+# - Fix printing of symlinks in -ql to exclude link target
+#
+# Revision 1.19  2004/04/05 04:37:46  agriffis
+# - Add patch from Michael Sterret in bug 45927 to handle whitespace
+#   in filenames
+#
+# Revision 1.18  2004/03/29 16:47:34  agriffis
+# Fix bug 45927: Handle filenames with spaces correctly
+# Update version to 0.8.6
+#
+# Revision 1.17  2004/03/08 23:23:39  agriffis
+# - Update to 0.8.5
+#
+# Revision 1.16  2004/03/08 23:21:46  agriffis
+# - Added size option to -qi and -qS
+# - Thanks to Bram Dumolin (http://lanka-expats.net/) for the idea and
+#   an initial effort at the code
 #
 # Revision 1.15  2003/05/27 01:36:01  agriffis
 # - Update to 0.8.4
